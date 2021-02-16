@@ -164,5 +164,3 @@ initial_df <- data.frame(n1 = NA,
                          cohen_d = NA,
                          cohen_ll = NA,
                          cohen_ul = NA)
-
-initial_message <- "No warnings"
