@@ -35,37 +35,6 @@ ui <- fluidPage(
             style="text-align: center;")),
       
       conditionalPanel(
-        "input.tab == 'Procedure'",
-        
-        id = "proc-panel",
-        
-        p("Define the parameters of the procedure."),
-        
-        prettyRadioButtons(inputId = "stoprule", label = "",
-                           choices = list("Error Probabilities" = "errors", 
-                                          "Thresholds" = "thresholds"),
-                           selected = "errors",
-                           inline = TRUE),
-        
-        conditionalPanel(
-          condition = "input.stoprule == 'errors'",
-          textInput("alpha", "\\( \\alpha \\) (Type I error probability)"),
-          textInput("beta", "\\( \\beta \\) (Type II error probability)")
-        ),
-        
-        conditionalPanel(
-          condition = "input.stoprule == 'thresholds'",
-          textInput("A","Upper threshold"),
-          textInput("B","Lower threshold")
-        ),
-        
-        fluidRow(
-          column(12, align = "center",
-                 actionButton("reset1", "Reset"))
-        )
-      ),
-      
-      conditionalPanel(
         "input.tab == 'Prior Settings'",
         
         id = "prior-panel",
@@ -82,14 +51,21 @@ ui <- fluidPage(
         
         pickerInput("prior", label = "Prior distribution:",
                     choices = list("Cauchy distribution" = "cauchy", 
-                                   "t distribution" = "t", 
-                                   "Normal distribution" = "normal"),
+                                   "Non-local alternative prior" = "nap",
+                                   "Normal distribution" = "normal",
+                                   "t distribution" = "t"),
                     selected = "cauchy"),
         
         conditionalPanel(
           "input.prior == 'cauchy'",
           textInput("gamma_c","\\( \\gamma \\) (prior scale)",
                     value = "1/sqrt(2)")
+        ),
+        
+        conditionalPanel(
+          "input.prior == 'nap'",
+          textInput("tau2","\\( \\tau^2 \\) (prior scale)",
+                    value = "0.045")
         ),
         
         conditionalPanel(
@@ -129,15 +105,29 @@ ui <- fluidPage(
         
         id = "analysis-panel",
         
-        pickerInput("design", label = "Study design:",
+        prettyRadioButtons(inputId = "stoprule", label = "Procedure:",
+                           choices = list("Error Probabilities" = "errors", 
+                                          "Evidence Thresholds" = "thresholds"),
+                           selected = "errors",
+                           inline = TRUE),
+        
+        conditionalPanel(
+          condition = "input.stoprule == 'errors'",
+          textInput("alpha", "\\( \\alpha \\) (Type I error probability)"),
+          textInput("beta", "\\( \\beta \\) (Type II error probability)")
+        ),
+        
+        conditionalPanel(
+          condition = "input.stoprule == 'thresholds'",
+          textInput("A","Upper threshold"),
+          textInput("B","Lower threshold")
+        ),
+        
+        pickerInput("design", label = "Study Information:",
                     choices = list("One Sample" = "one", 
                                    "Independent Samples" = "two", 
                                    "Paired Samples" = "paired"),
                     selected = "two"),
-        
-        br(),
-        
-        strong("Study information:"),
         
         prettyRadioButtons(
           "info", "",choices = list("t Value" = "t","Means and SDs" = "means"),
@@ -205,19 +195,15 @@ ui <- fluidPage(
           )
         ),
         
-        br(),
-        
-        strong("Output options:"),
-        
         prettyRadioButtons(
-          "bftype", "", choices = c("BF\\(_{10}\\)" = "bf10",
+          "bftype", "Output Options:", choices = c("BF\\(_{10}\\)" = "bf10",
                                     "BF\\(_{01}\\)" = "bf01",
                                     "log(BF\\(_{10}\\))" = "log"),
           selected = "bf10", inline = T),
         
         prettyRadioButtons(
           "estype", "", choices = c("Cohen's d" = "cohend",
-                                    "Posterior Median" = "posterior"),
+                                    "Posterior Median (under \\(H_1\\))" = "posterior"),
           selected = "cohend", inline = T),
         
         numericInput(
@@ -248,34 +234,20 @@ ui <- fluidPage(
             "Waldian t tests are sequential Bayesian t tests with predefined thresholds",
             "to control error probabilities. You can find more information in",
             a("this preprint.", href = "https://psyarxiv.com/x4ybm")),
-          p("To set up the sequential procedure, specify the desired",
-            "error probabilities to calculate threshold values (and vice versa)",
-            "under", strong("Procedure."), "Define and visualize your prior on \\(\\delta\\)",
-            "under", strong("Prior Settings."), "The app currently supports",
-            "Cauchy distributions, t distributions, and Normal distributions."),
-          p("Finally, you can calculate Bayes factors for your observed data under", 
-            strong("Analysis"), "and check whether you can terminate or continue sampling.",
-            "Bayes factor computations are based on an", a("R script", href = "https://osf.io/bsp6z/"),
-            "by Gronau, Ly, and Wagenmakers (", a("2020", href = "https://doi.org/10.1080/00031305.2018.1562983"),
-            ")."),
+          p("To set up the sequential procedure, specify and visualize",
+            "your prior on \\(\\delta\\) under", strong("Prior Settings."),
+            "The app currently supports Cauchy distributions, t distributions,",
+            "non-local alternative priors, and Normal distributions."),
+          p("Under", strong("Analysis"), ", you can define the desired error",
+            "probabilities of the test procedure and calculate threshold values",
+            "(or vice versa). Finally, you can calculate Bayes factors for your",
+            "observed data and check whether you can terminate or continue sampling."),
           p("If you have any questions, comments, or suggestions concerning this",
             "app or underlying scripts, please contact",
-            a("Martin Schnuerch.", href="mailto:martin.schnuerch@gmail.com")),
+            a("Martin Schnuerch.", href="mailto:martin.schnuerch@gmail.com"),
+            "You can find the underlying source code for this Shiny app on",
+            a("Github.", href = "https://github.com/mschnuerch/waldian-t-tests")),
           strong("Enjoy this app!")
-        ),
-        
-        tabPanel("Procedure",
-                 br(),
-                 
-                 p("Specify the desired error probabilities (\\(\\alpha, \\beta\\))",
-                   "for your procedure to calculate the upper and lower threshold."),
-                 p("Alternatively, if you follow a procedure with predefines boundaries,",
-                   "you can set the threshold values to calculate associated",
-                   "error probabilities."),
-                 p(strong("Note:"), "Specify these parameters", em("before"), 
-                   "you start data collection and do not change them afterwards."),
-                 br(),
-                 p("See", strong("Analysis"), "for resulting parameters.")
         ),
         
         tabPanel("Prior Settings",
@@ -362,6 +334,6 @@ ui <- fluidPage(
     "there is no warranty whatsoever. Please address comments, questions, or suggestions",
     "concerning this Shiny app and underlying scripts to",
     a("Martin Schnuerch.", href="mailto:martin.schnuerch@gmail.com"),
-    style = "font-size:10px; text-align:justify")
+    style = "font-size:12px; text-align:justify")
   
 )

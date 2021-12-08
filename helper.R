@@ -1,5 +1,5 @@
 waldian_t_test <- function(A, B, design, h1,
-                           prior, mu, gamma, kappa, sigma,
+                           prior, mu, gamma, kappa, sigma, tau2,
                            info, t, nx, ny, 
                            mx, my, sx, sy, rxy,
                            ci){
@@ -29,7 +29,8 @@ waldian_t_test <- function(A, B, design, h1,
   }
   
   
-  if(prior != "normal"){
+  if (prior %in% c("cauchy", "t")) {
+    
     bflist <- bf10_t(t = t, n1 = nx, n2 = ny, 
                      independentSamples = independent,
                      prior.location = mu, prior.scale = gamma,
@@ -44,7 +45,8 @@ waldian_t_test <- function(A, B, design, h1,
                            ci,
                            type)
     
-  }else{
+    
+  } else if (prior == "normal"){
     bflist <- bf10_normal(t = t, n1 = nx, n2 = ny, 
                           independentSamples = independent,
                           prior.mean = mu, prior.variance = sigma)
@@ -57,7 +59,22 @@ waldian_t_test <- function(A, B, design, h1,
                                 sigma,
                                 ci,
                                 type)
+  } else {
+    
+    bflist <- bf10_nap(t = t, n1 = nx, n2 = ny, 
+                          independentSamples = independent,
+                          tau2 = tau2)
+    
+    post <- ciPlusMedian_nap(t,
+                                nx,
+                                ny,
+                                independent,
+                                tau2,
+                                ci,
+                                type)
+    
   }
+  
   bf <- switch(h1,
                "d_0" = bflist[[1]],
                "d_plus" = bflist[[2]],
@@ -110,7 +127,7 @@ waldian_t_test <- function(A, B, design, h1,
 
 
 check_input <- function(alpha, beta, A, B, 
-                        mu, gamma, sigma, t, nx, ny,
+                        mu, gamma, sigma, tau2, t, nx, ny,
                         mx, my, sx, sy, rxy, ci, prior, info, design){
   
   warnings <- makeAssertCollection()
@@ -126,24 +143,29 @@ check_input <- function(alpha, beta, A, B,
   assert_numeric(mu, add = warnings, .var.name = "Prior Location")
   assert_numeric(nx, add = warnings, .var.name = "Sample Size")
   assert_numeric(ci, add = warnings, .var.name = "CI Level")
-  if(prior != "normal"){
+  if(prior %in% c("t", "cauchy")){
     assert_numeric(gamma, add = warnings, .var.name = "Prior Scale")
+  } else if (prior == "normal") {
+    assert_numeric(sigma, add = warnings, .var.name = "Prior Variance",
+                   lower = 0)
+  } else {
+    assert_numeric(tau2, add = warnings, .var.name = "Prior Scale")
   }
   if(info == "t"){
     assert_numeric(t, add = warnings, .var.name = "t Value")
   }else{
     assert_numeric(mx, add = warnings, .var.name = "Sample Mean")
-    assert_numeric(sx, add = warnings, .var.name = "Sample SD")
+    assert_numeric(sx, add = warnings, .var.name = "Sample SD", lower = 0)
     if(design != "one"){
       assert_numeric(my, add = warnings, .var.name = "Sample Mean")
-      assert_numeric(sy, add = warnings, .var.name = "Sample SD")
+      assert_numeric(sy, add = warnings, .var.name = "Sample SD", lower = 0)
       if(design == "paired"){
         assert_numeric(rxy, add = warnings, .var.name = "Group Correlation")
       }
     }
   }
   if(design == "two"){
-    assert_numeric(ny, add = warnings, .var.name = "Sample Size")
+    assert_numeric(ny, add = warnings, .var.name = "Sample Size Group 2")
   }
   
   return(list(

@@ -129,6 +129,8 @@ server <- function(input, output, session) {
                                  silent = T),
                 sigma      = try(eval(parse(text = input$sigma)), 
                                  silent = T),
+                tau2       = try(eval(parse(text = input$tau2)),
+                                 silent = T),
                 t          = try(eval(parse(text = input$t)), silent = T),
                 nx         = try(eval(parse(text = ifelse(input$design == "one", 
                                                           input$n,
@@ -167,6 +169,7 @@ server <- function(input, output, session) {
                                                          input$gamma_t, 
                                                          input$gamma_c))),
                    sigma      = eval(parse(text = input$sigma)),
+                   tau2       = eval(parse(text = input$tau2)),
                    kappa      = input$kappa,
                    info       = input$info,
                    t          = eval(parse(text = input$t)),
@@ -255,6 +258,10 @@ server <- function(input, output, session) {
       gamma <- try(eval(parse(text = input$gamma_c)))
       tmp <- paste0("Cauchy(", round(gamma, digits = 3), ")")
     }
+    if(input$prior == "nap"){
+      tau2 <- try(eval(parse(text = input$tau2)))
+      tmp <- paste0("NM(0,", round(tau2, digits = 3), ")")
+    }
     withMathJax(paste("\\(\\delta \\sim\\)", tmp))
   })
   
@@ -263,6 +270,7 @@ server <- function(input, output, session) {
     mu_n <- eval(parse(text = input$mu_n))
     mu_t <- eval(parse(text = input$mu_t))
     sd <- sqrt(eval(parse(text = input$sigma)))
+    tau2 <- eval(parse(text = input$tau2))
     r <- eval(parse(text = input$gamma_c))
     gamma <- eval(parse(text = input$gamma_t))
     df <- eval(parse(text = input$kappa))
@@ -292,6 +300,13 @@ server <- function(input, output, session) {
         max_val <- dtt(0, 0, r, 1, 0)
       else
         max_val <- dtt(0, 0, r, 1, -Inf, 0)
+    }
+    
+    if(input$prior == "nap"){
+      if(input$h1 == "d_0")
+        max_val <- non_local_prior(sqrt(2 * tau2), tau2)
+      else 
+        max_val <- non_local_prior(sqrt(2 * tau2), tau2) * 2
     }
     
     lim <- input$ylim
@@ -361,7 +376,7 @@ server <- function(input, output, session) {
                                                df = df, right = 0),
                         xlim = lim, n = 1000, lwd = lnwdth)
       }
-    }else{
+    }else if (input$prior == "cauchy"){
       if(input$h1 == "d_0"){
         p +
           stat_function(mapping = aes(color = "h1"),
@@ -379,6 +394,31 @@ server <- function(input, output, session) {
           stat_function(mapping = aes(color = "h1"),
                         fun = dtt, args = list(scale = r,
                                                df = 1, right = 0),
+                        xlim = lim, n = 1000, lwd = lnwdth)
+      }
+    } else {
+      if(input$h1 == "d_0"){
+        p +
+          stat_function(mapping = aes(color = "h1"),
+                        fun = non_local_prior, args = list(tau2 = tau2),
+                        xlim = lim, n = 1000, lwd = lnwdth)
+      }else if(input$h1 == "d_plus"){
+        p +
+          stat_function(mapping = aes(color = "h1"),
+                        fun = function(x, tau2) {
+                          out <- 2 * non_local_prior(x, tau2)
+                          out[x < 0] <- 0
+                          return(out)}, 
+                        args = list(tau2 = tau2),
+                        xlim = lim, n = 1000, lwd = lnwdth)
+      }else{
+        p +
+          stat_function(mapping = aes(color = "h1"),
+                        fun = function(x, tau2) {
+                          out <- 2 * non_local_prior(x, tau2)
+                          out[x > 0] <- 0
+                          return(out)}, 
+                        args = list(tau2 = tau2),
                         xlim = lim, n = 1000, lwd = lnwdth)
       }
     }
@@ -477,14 +517,6 @@ server <- function(input, output, session) {
       }
     }
   })
-  
-  observe({
-    if(input$reset1 == 0){
-      return()
-    }else{
-      shinyjs::reset("proc-panel")
-    }
-  })  
   
   observe({
     if(input$reset2 == 0){
