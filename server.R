@@ -190,79 +190,11 @@ server <- function(input, output, session) {
   
   # Render Output -----------------------------------------------------------
   
-  output$alpha <- renderUI({
-    withMathJax(round(alpha(), digits = 3))
-  })
-  
-  output$power <- renderUI({
-    withMathJax(round(power(), digits = 3))
-  })
-  
-  output$A <- renderUI({
-    A <- A()
-    if(input$bftype == "bf01")
-      A <- 1/A
-    if(input$bftype == "log")
-      A <- log(A)
-    withMathJax(round(A, digits = 5))
-  })
-  
-  output$B <- renderUI({
-    B <- B()
-    if(input$bftype == "bf01")
-      B <- 1/B
-    if(input$bftype == "log")
-      B <- log(B)
-    withMathJax(round(B, digits = 5))
-  })
-  
   output$cilab <- renderUI({
     tmp <- ifelse(input$estype == "cohend",
                   "Confidence",
                   "Credible")
     paste(tmp, "Interval (%):")
-  })
-  
-  output$design <- renderText({
-    tmp <- ifelse(input$design == "one", 
-                  "one sample", 
-                  ifelse(input$design == "two", 
-                         "two independent samples", 
-                         "two paired samples"))
-    paste("Waldian t test for", tmp)
-  })
-  
-  output$h1 <- renderUI({
-    tmp <- ifelse(input$h1 == "d_0", 
-                  "\\delta \\neq 0", 
-                  ifelse(input$h1 == "d_min", 
-                         "\\delta < 0", 
-                         "\\delta > 0"))
-    withMathJax(paste("\\(H_1\\!:", tmp, "\\)"))
-  })
-  
-  output$prior <- renderUI({
-    if(input$prior == "t"){
-      mu <- try(eval(parse(text = input$mu_t)))
-      gamma <- try(eval(parse(text = input$gamma_t)))
-      tmp <- paste0("\\(t_{", input$kappa, "}\\)(", round(mu, digits = 2),
-                    ",", round(gamma, digits = 3), ")")
-    }
-    if(input$prior == "normal"){
-      mu <- try(eval(parse(text = input$mu_n)))
-      sigma <- try(eval(parse(text = input$sigma)))
-      tmp <- paste0("Normal(", round(mu, digits = 2),
-                    ",", round(sigma, digits = 2), ")")
-    }
-    if(input$prior == "cauchy"){
-      gamma <- try(eval(parse(text = input$gamma_c)))
-      tmp <- paste0("Cauchy(", round(gamma, digits = 3), ")")
-    }
-    if(input$prior == "nap"){
-      tau2 <- try(eval(parse(text = input$tau2)))
-      tmp <- paste0("NM(0,", round(tau2, digits = 3), ")")
-    }
-    withMathJax(paste("\\(\\delta \\sim\\)", tmp))
   })
   
   output$prior_plot <- renderPlot({
@@ -461,6 +393,70 @@ server <- function(input, output, session) {
                           "Posterior Median"),
                    notation="alphabet",
                    escape = FALSE)
+    
+    # print(df)
+    
+    withMathJax(HTML(tab))
+  })
+  
+  output$procedure <- renderPrint({
+    
+    alpha <- round(alpha(), digits = 3)
+    power <- round(power(), digits = 3)
+    
+    A <- A()
+    if(input$bftype == "bf01")
+      A <- 1/A
+    if(input$bftype == "log")
+      A <- log(A)
+    A <- round(A, digits = 5)
+    
+    B <- B()
+    if(input$bftype == "bf01")
+      B <- 1/B
+    if(input$bftype == "log")
+      B <- log(B)
+    B <- round(B, digits = 5)
+    
+    h1 <- case_when(
+      input$h1 == "d_0" ~ "\\(\\delta \\neq 0\\)",
+      input$h1 == "d_min" ~ "\\(\\delta < 0\\)",
+      TRUE ~ "\\(\\delta > 0\\)"
+    )
+    
+    if(input$prior == "t"){
+      mu <- try(eval(parse(text = input$mu_t)))
+      gamma <- try(eval(parse(text = input$gamma_t)))
+      tmp <- paste0("\\(t_{", input$kappa, "}\\)(", round(mu, digits = 2),
+                    ",", round(gamma, digits = 3), ")")
+    }
+    if(input$prior == "normal"){
+      mu <- try(eval(parse(text = input$mu_n)))
+      sigma <- try(eval(parse(text = input$sigma)))
+      tmp <- paste0("Normal(", round(mu, digits = 2),
+                    ",", round(sigma, digits = 2), ")")
+    }
+    if(input$prior == "cauchy"){
+      gamma <- try(eval(parse(text = input$gamma_c)))
+      tmp <- paste0("Cauchy(", round(gamma, digits = 3), ")")
+    }
+    if(input$prior == "nap"){
+      tau2 <- try(eval(parse(text = input$tau2)))
+      tmp <- paste0("NM(0,", round(tau2, digits = 3), ")")
+    }
+    
+    df <- data.frame("\\(\\delta = 0\\)", h1, tmp, alpha, power, B, A)
+    
+    header1 = c("\\(H_0\\)", "\\(H_1\\)", "Prior under \\(H_1\\)", 
+                "Type I", "Power", "B (\\(H_0\\))", "A (\\(H_1\\))")
+    header2 = c("Hypotheses" = 3, "Error Probabilities" = 2, 
+                "Thresholds" = 2)
+    
+    tab <- df %>%
+      knitr::kable(format = "html", col.names = header1,
+                   align = "c", escape = F) %>%
+      kable_styling("striped", full_width = F) %>%
+      add_header_above(header = header2)
     
     # print(df)
     

@@ -113,8 +113,10 @@ ui <- fluidPage(
         
         conditionalPanel(
           condition = "input.stoprule == 'errors'",
-          textInput("alpha", "\\( \\alpha \\) (Type I error probability)"),
-          textInput("beta", "\\( \\beta \\) (Type II error probability)")
+          textInput("alpha", "\\( \\alpha \\) (Type I error probability)",
+                    value = ".05"),
+          textInput("beta", "\\( \\beta \\) (Type II error probability)",
+                    value = ".05")
         ),
         
         conditionalPanel(
@@ -260,52 +262,8 @@ ui <- fluidPage(
                  
                  fluidRow(
                    box(
-                     fluidRow(
-                       column(4, align = "center",
-                              
-                              p("\\(H_0\\): \\(\\delta = 0\\)"),
-                              uiOutput("h1")
-                              
-                       ),
-                       column(8, align = "center",
-                              
-                              p("Prior under \\(H_1\\)"),
-                              uiOutput("prior")
-                       )
-                     ), title = "Hypotheses", status = "primary", 
-                     solidHeader = FALSE, collapsible = TRUE,
-                     width = 12
-                   )
-                 ),
-                 
-                 fluidRow(
-                   box(
-                     fluidRow(
-                       column(6, align = "center",
-                              strong("Error probabilities:"),
-                              
-                              fluidRow(
-                                column(6, align = "center",
-                                       p("Type I"),
-                                       uiOutput("alpha")),
-                                column(6, align = "center",
-                                       p("Power"),
-                                       uiOutput("power"))
-                              )
-                       ),
-                       column(6, align = "center",
-                              strong("Thresholds:"),
-                              
-                              fluidRow(
-                                column(6, align = "center",
-                                       p("lower (\\(H_0\\))"),
-                                       uiOutput("B")),
-                                column(6, align = "center",
-                                       p("upper (\\(H_1\\))"),
-                                       uiOutput("A"))
-                              )
-                       )
-                     ),
+                     id = "procedure",
+                     uiOutput("procedure"),
                      title = "Procedure", status = "primary", 
                      solidHeader = FALSE, collapsible = TRUE,
                      width = 12
@@ -321,6 +279,7 @@ ui <- fluidPage(
                      width = 12
                    )
                  )
+            
         ),
         selected = "About"
       )
